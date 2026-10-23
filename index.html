@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gửi Em</title>
+<meta name="theme-color" content="#0E0B16">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500;1,600&family=Be+Vietnam+Pro:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Dancing+Script:wght@500;600&display=swap">
+<style>
+  :root {
+    --night: #0E0B16;
+    --ink: #F6ECE4;
+    --muted: rgba(246,236,228,0.55);
+    --faint: rgba(246,236,228,0.28);
+    --rose: #F2A7B5;
+    --peach: #FFD2B8;
+    --e: 0.3;            /* năng lượng nhạc 0..1, JS cập nhật liên tục */
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--night); color: var(--ink); overflow: hidden; }
+  body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  ::selection { background: rgba(242,167,181,0.35); }
+
+  /* ---------- nền: cực quang + bụi sáng ---------- */
+  #bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: calc(0.38 + var(--e) * 0.4); mix-blend-mode: screen; will-change: transform; }
+  .blob.b1 { width: 62vmax; height: 62vmax; left: -18vmax; top: -22vmax; background: radial-gradient(circle, #7A3A78 0%, transparent 65%); animation: drift1 38s ease-in-out infinite; }
+  .blob.b2 { width: 55vmax; height: 55vmax; right: -20vmax; bottom: -24vmax; background: radial-gradient(circle, #2E3A8C 0%, transparent 65%); animation: drift2 44s ease-in-out infinite; }
+  .blob.b3 { width: 40vmax; height: 40vmax; left: 30%; top: 35%; background: radial-gradient(circle, #B8566E 0%, transparent 62%); animation: drift3 31s ease-in-out infinite; opacity: calc(0.18 + var(--e) * 0.5); }
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(14vw, 10vh) scale(1.15); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(-12vw, -12vh) scale(0.92); } }
+  @keyframes drift3 { 0%,100% { transform: translate(-50%,-50%) scale(0.9); } 50% { transform: translate(-30%,-62%) scale(1.2); } }
+  #dust { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 35%, rgba(5,3,10,0.75) 100%); }
+  #flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(242,167,181,0.22), transparent 60%); opacity: 0; transition: opacity 1.6s ease; }
+  body.chorus #flash { opacity: calc(0.4 + var(--e) * 0.6); }
+
+  /* ---------- sân khấu lời ---------- */
+  #stage { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px 120px; text-align: center; pointer-events: none; }
+  #lines { position: relative; width: 100%; max-width: 920px; min-height: 46vh; display: flex; align-items: center; justify-content: center; }
+  /* lời chúc: chữ viết tay mềm mại */
+  .line { position: absolute; left: 0; right: 0; margin: 0 auto; font-family: 'Dancing Script', cursive; font-style: normal; font-weight: 500; font-size: clamp(32px, 6.2vw, 62px); line-height: 1.3; letter-spacing: 0.3px; text-shadow: 0 0 calc(14px + var(--e) * 26px) rgba(242,167,181,0.3); }
+  .line.big { font-weight: 600; font-size: clamp(36px, 7.4vw, 78px); }
+  .line .w { display: inline-block; white-space: nowrap; }
+  .line .ch { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+  .line .em { color: var(--peach); text-shadow: 0 0 calc(18px + var(--e) * 34px) rgba(255,190,170,0.7); }
+  /* lời bài hát: chữ đứng, mảnh, khác hẳn giọng tâm thư */
+  .line.lyric { font-family: 'Cormorant Garamond', serif; font-style: normal; font-weight: 500; font-size: clamp(27px, 4.8vw, 52px); line-height: 1.3; letter-spacing: .6px; color: rgba(250,242,236,0.96); text-shadow: 0 0 calc(12px + var(--e) * 24px) rgba(185,164,240,0.4); }
+  .line.lyric .em { color: var(--peach); font-weight: 600; }
+  .line.lyric.big .em { color: #FFF1E6; }
+  .line.lyric.big { font-style: italic; font-weight: 600; font-size: clamp(31px, 5.8vw, 62px); color: var(--peach); }
+  #mode { position: fixed; top: 22px; left: 0; right: 0; z-index: 3; text-align: center; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: var(--faint); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
+  #mode.on { opacity: 1; }
+  .line.gap { font-style: normal; font-size: 22px; letter-spacing: 14px; color: var(--muted); transition: opacity .5s; }
+  .line.gap span { display: inline-block; animation: breathe 2.4s ease-in-out infinite; }
+  .line.gap span:nth-child(2) { animation-delay: .3s; } .line.gap span:nth-child(3) { animation-delay: .6s; }
+  @keyframes breathe { 0%,100% { opacity: .2; transform: translateY(0); } 50% { opacity: .9; transform: translateY(-5px); } }
+
+  #next { margin-top: 10px; min-height: 1.6em; max-width: 720px; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(16px, 2.1vw, 21px); color: var(--faint); transition: opacity .6s ease; }
+
+  @keyframes dust-in { 0% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(.5); filter: blur(6px); } 100% { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes dust-out { 0% { opacity: 1; transform: none; filter: blur(0); } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) - 40px)) rotate(var(--rot)) scale(.6); filter: blur(6px); } }
+
+  /* ---------- màn mở đầu & lời kết ---------- */
+  .card { position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px 24px; text-align: center; transition: opacity 1.2s ease, visibility 1.2s; }
+  .card.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  .kicker { font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--rose); }
+  .card h1 { margin: 0; font-family: 'Playfair Display', serif; font-style: italic; font-weight: 600; font-size: clamp(38px, 8vw, 80px); line-height: 1.2; padding: 0 .1em; background: linear-gradient(100deg, #FFE3D3 10%, #F2A7B5 55%, #B9A4F0 95%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .card .sub { max-width: 440px; font-size: 15px; line-height: 1.8; color: var(--muted); font-weight: 300; }
+  .song { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+  .song i { width: 26px; height: 1px; background: var(--faint); }
+  .play-big { margin-top: 10px; display: inline-flex; align-items: center; gap: 12px; padding: 15px 30px 15px 24px; border-radius: 999px; border: 1px solid rgba(255,210,184,0.45); background: rgba(255,210,184,0.08); cursor: pointer; font-size: 15px; letter-spacing: .5px; backdrop-filter: blur(6px); transition: background .3s, transform .3s; }
+  .play-big:hover { background: rgba(255,210,184,0.16); transform: translateY(-2px); }
+  .play-big svg { width: 18px; height: 18px; }
+  .pulse { animation: pulse 2.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(242,167,181,0.35); } 50% { box-shadow: 0 0 0 14px rgba(242,167,181,0); } }
+
+  #intro, #letterCard { z-index: 3; pointer-events: none; }
+  #letterCard .t { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(26px, 5vw, 48px); color: var(--ink); max-width: 640px; }
+  #letterCard .rule { width: min(300px, 60vw); height: 1px; background: linear-gradient(90deg, transparent, rgba(255,210,184,0.5), transparent); }
+  #intro .t { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(34px, 7vw, 72px); color: var(--ink); }
+  #ending .sig1 { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(22px, 3.4vw, 30px); color: var(--peach); }
+  #ending .sig2 { font-family: 'Playfair Display', serif; font-weight: 600; font-size: clamp(17px, 2.4vw, 22px); }
+  #ending .rule { width: min(380px, 70vw); height: 1px; background: linear-gradient(90deg, transparent, rgba(255,210,184,0.5), transparent); }
+  #ending .reveal { opacity: 0; transform: translateY(14px); transition: opacity 1.4s ease, transform 1.4s ease; }
+  #ending:not(.hide) .reveal { opacity: 1; transform: none; }
+  #ending:not(.hide) .reveal:nth-child(2) { transition-delay: .5s; } #ending:not(.hide) .reveal:nth-child(3) { transition-delay: 1s; }
+  #ending:not(.hide) .reveal:nth-child(4) { transition-delay: 1.6s; } #ending:not(.hide) .reveal:nth-child(5) { transition-delay: 2.6s; }
+  /* ---------- quầng sáng sau chữ, hạt phim ---------- */
+  #halo { position: absolute; left: 50%; top: 44%; width: min(90vw, 980px); height: min(56vh, 520px); transform: translate(-50%, -50%) scale(calc(0.9 + var(--e) * 0.22)); background: radial-gradient(ellipse at center, rgba(255,205,185,0.17) 0%, rgba(185,164,240,0.09) 38%, transparent 70%); filter: blur(28px); transition: transform .25s linear; }
+  #grain { position: absolute; inset: -60%; opacity: .07; mix-blend-mode: overlay; pointer-events: none; animation: grain 1.4s steps(6) infinite;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  @keyframes grain { 0% { transform: translate(0,0); } 20% { transform: translate(-3%,2%); } 40% { transform: translate(2%,-4%); } 60% { transform: translate(-4%,-1%); } 80% { transform: translate(3%,3%); } 100% { transform: translate(0,0); } }
+
+  /* vạch mảnh dưới mỗi câu, chạy hết khi sang câu mới */
+  .line .prog { display: block; width: min(200px, 40%); height: 1px; margin: 20px auto 0; border-radius: 1px; background: rgba(246,236,228,0.1); overflow: hidden; transition: opacity .5s ease; }
+  .line .prog i { display: block; height: 100%; background: linear-gradient(90deg, rgba(185,164,240,0.2), var(--peach)); transform-origin: left center; animation: prog var(--dur) linear both; }
+  .line.out .prog { opacity: 0; }
+  @keyframes prog { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* ---------- thanh điều khiển ---------- */
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; padding: 18px max(20px, env(safe-area-inset-left)) calc(18px + env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(8,5,14,0.85), transparent); transition: opacity .6s ease, transform .6s ease; }
+  body.idle #bar { opacity: 0; transform: translateY(12px); }
+  body.idle { cursor: none; }
+  .row { max-width: 920px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .icon-btn { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(246,236,228,0.22); background: rgba(246,236,228,0.06); display: grid; place-items: center; cursor: pointer; transition: background .25s; }
+  .icon-btn:hover { background: rgba(246,236,228,0.14); }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .meta { flex: none; min-width: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .meta b { display: block; font-weight: 500; font-size: 13px; color: var(--ink); }
+  #track { position: relative; flex: 1; height: 26px; cursor: pointer; touch-action: none; }
+  #track .rail { position: absolute; left: 0; right: 0; top: 12px; height: 2px; border-radius: 2px; background: rgba(246,236,228,0.16); }
+  #track .fill { position: absolute; left: 0; top: 12px; height: 2px; border-radius: 2px; width: 0; background: linear-gradient(90deg, #B9A4F0, var(--rose), var(--peach)); }
+  #track .knob { position: absolute; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--peach); box-shadow: 0 0 12px rgba(255,210,184,0.8); left: 0; }
+  #track .tick { position: absolute; top: 10px; width: 2px; height: 6px; margin-left: -1px; border-radius: 1px; background: rgba(255,210,184,0.45); }
+  .time { flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+  @media (max-width: 600px) { .meta { display: none; } .row { gap: 10px; } }
+
+  /* ---------- chế độ canh lời (phím R) ---------- */
+  #sync { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 8; width: min(560px, calc(100vw - 32px)); padding: 14px 16px; border-radius: 14px; background: rgba(14,11,22,0.92); border: 1px solid rgba(255,210,184,0.3); font-size: 13px; line-height: 1.6; display: none; }
+  #sync.show { display: block; }
+  #sync textarea { width: 100%; height: 180px; margin-top: 8px; background: #08060D; color: var(--ink); border: 1px solid rgba(246,236,228,0.2); border-radius: 8px; padding: 8px; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+  #sync .actions { display: flex; gap: 8px; margin-top: 8px; }
+  #sync button { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(246,236,228,0.25); background: rgba(246,236,228,0.08); cursor: pointer; }
+  #clock { position: fixed; top: 16px; right: 16px; z-index: 8; font: 12px ui-monospace, Consolas, monospace; color: var(--peach); display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob, #grain { animation: none; }
+    .line .ch { animation-duration: .01s !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div id="halo"></div>
+  <canvas id="dust"></canvas>
+  <div id="flash"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<!-- màn mở đầu (cần một cú chạm để trình duyệt cho phép phát nhạc) -->
+<div class="card" id="start">
+  <div class="kicker">gửi em</div>
+  <h1>Hôm nay em ổn chứ?</h1>
+  <div class="sub">Hi vọng ngày hôm nay của em vẫn ổn.<br>Mong em nghe, và cùng đọc lyrics nhé :3</div>  <div class="song"><i></i>Ác Mộng Đẹp<i></i></div>
+  <button class="play-big pulse" id="startBtn" aria-label="Bắt đầu nghe">
+    <svg viewBox="0 0 18 18" fill="currentColor"><path d="M4 2.5v13l11-6.5z"/></svg>
+    Nghe bài này nhé
+  </button>
+</div>
+
+<!-- tựa đề hiện trong đoạn dạo nhạc -->
+<div class="card hide" id="intro">
+  <div class="kicker">gửi em</div>
+  <div class="t">Ác Mộng Đẹp</div>
+</div>
+
+<!-- chuyển từ lời bài hát sang tâm thư, hiện trong đoạn nhạc dạo giữa bài -->
+<div class="card hide" id="letterCard">
+  <div class="kicker">lời chúc</div>
+  <div class="rule"></div>
+  <div class="t">Mọi chuyện qua rồi, giờ chỉ còn lời chúc thôi</div>
+</div>
+
+<div id="mode"></div>
+
+<div id="stage">
+  <div id="lines"></div>
+  <div id="next"></div>
+</div>
+
+<!-- lời kết -->
+<div class="card hide" id="ending">
+  <div class="reveal kicker">cảm ơn em đã nghe</div>
+  <div class="reveal sig1">Chúc em một ngày thật nhẹ nhàng,</div>
+  <div class="reveal rule"></div>
+  <div class="reveal sig2">— anh</div>
+  <button class="reveal play-big" id="replayBtn" style="margin-top:22px;">
+    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 9a6 6 0 1 0 1.8-4.3M3 3v3.5h3.5"/></svg>
+    Nghe lại từ đầu
+  </button>
+</div>
+
+<div id="bar">
+  <div class="row">
+    <button class="icon-btn" id="playBtn" aria-label="Phát / tạm dừng"></button>
+    <div class="meta"><b>Ác Mộng Đẹp</b>gửi em</div>
+    <span class="time" id="tCur">0:00</span>
+    <div id="track" aria-label="Tua bài hát"><div class="rail"></div><div class="fill"></div><div class="knob"></div></div>
+    <span class="time" id="tDur">0:00</span>
+  </div>
+</div>
+
+<div id="clock"></div>
+<div id="sync">
+  <b>Chế độ canh lời</b><br>
+  Nhạc phát lại từ đầu. Mỗi khi một câu <u>bắt đầu được hát</u>, nhấn <b>Space</b> (hoặc chạm màn hình).
+  Câu sắp được đánh dấu: <span id="syncNext" style="color:var(--peach)"></span>
+  <textarea id="syncOut" readonly placeholder="Kết quả hiện ở đây khi nhấn R lần nữa hoặc khi đánh dấu hết lời."></textarea>
+  <div class="actions"><button id="syncCopy">Sao chép</button><button id="syncClose">Đóng</button></div>
+</div>
+
+<audio id="song" src="assets/ac-mong-dep.mp3" preload="auto"></audio>
+
+<!--
+  ===== LỜI BÀI HÁT =====
+  Dán nguyên lời bài "Ác Mộng Đẹp" vào giữa hai thẻ bên dưới, từ câu đầu tiên đến câu cuối cùng của bài.
+  Giữ cả hợp âm như [G], [Em] cũng được, trang sẽ tự bỏ đi. Dòng trống cũng được bỏ qua.
+  Các câu được đánh số theo thứ tự 1, 2, 3... và lịch hiển thị bên dưới gọi chúng bằng #1, #2, #3...
+  Dán đủ cả bài (46 câu), kể cả đoạn rap "Chưa một lần bào chữa...": bản nhạc này không hát đoạn rap,
+  nhưng thiếu nó thì số thứ tự các câu phía sau sẽ bị lệch.
+-->
+<script type="text/plain" id="song-lyrics">
+Tỉnh dậy sau đống đổ nát mưa bão em vừa trao
+Thật lòng anh cũng chẳng biết anh đã sống xót như thế nào?
+Tại vì sống tốt nên anh có che chở của trời cao
+Kỷ niệm năm tháng ấy đóng gói anh gửi em làm quà.
+
+Cô đơn ở bên anh thì sao
+Không em thì anh có làm sao
+Anh chẳng sao
+Chỉ vài thử thách trong đời để ta có thêm sự khôn lớn
+Hai ta rồi cũng sẽ gặp may
+Tương lai rồi cũng sẽ thật bay
+Qua hết rồi...
+
+Mỗi quá khứ luôn mang cho ta bao nhiêu câu chuyện vui
+Những khoảnh khắc xấu nhất anh xin người hãy chôn vùi
+Vậy nên cứ yên lòng, bảo vệ giấc mơ mà em muốn
+Bóng tối đã giúp anh được giấc ngủ ngon hơn
+Cô đơn đã khiến anh vui hơn nhiều
+Mọi thứ bây giờ, là một ác mộng thật đẹp.
+
+Đoạn kết trong đời nào sẽ khiến hai ta hài lòng
+Dù có như nào thì vẫn chúc hai ta thành công
+Trái đất vẫn xoay vòng qua một thời âu yếm mặn nồng
+Mùa thu mang tình yêu đi để lại một vùng trời đầy tiếc nuối.
+
+Cô đơn ở bên anh thì sao
+Không em thì anh có làm sao
+Anh chẳng sao
+Chỉ vài thử thách trong đời để ta có thêm sự khôn lớn
+Hai ta rồi cũng sẽ gặp may
+Tương lai rồi cũng sẽ thật bay
+Qua hết rồi...
+
+Mỗi quá khứ luôn mang cho ta bao nhiêu câu chuyện vui
+Những khoảnh khắc xấu nhất anh xin người hãy chôn vùi
+Vậy nên cứ yên lòng, bảo vệ giấc mơ mà em muốn
+Bóng tối đã giúp anh được giấc ngủ ngon hơn
+Cô đơn đã khiến anh vui hơn nhiều
+Mọi thứ bây giờ, là một ác mộng thật đẹp.
+
+Rồi mọi chuyện đã qua, niềm vui đẹp như cánh hoa
+Cho cả hai chúng ta, dù không còn chung mái nhà
+Mỉm cười ngày tình yêu đến, mỉm cười ngày tình yêu đi
+Mỉm cười mỗi khi nhớ đến ta không còn thấy đau.
+
+Chưa một lần bào chữa cho mình, anh chọn im lặng bảo vệ cả hai
+Rồi tại sao anh lại đứng dậy nói với dư luận mình là kẻ sai
+Vì nếu có người phải chết, anh đâu có muốn đó phải là em
+Anh không đi tìm sự thông cảm, không giải thích, không màng đến fame
+Anh sẽ ôm hết những sự thật để những điều đó không tìm đến em.
+
+Mỗi quá khứ luôn mang cho ta bao nhiêu câu chuyện vui
+Những khoảnh khắc xấu nhất anh xin người hãy chôn vùi
+Vậy nên cứ yên lòng, bảo vệ giấc mơ mà mình muốn.
+</script>
+
+<!--
+  ===== LỊCH HIỂN THỊ =====
+  Mỗi dòng: [phút:giây.phần mười] nội dung
+    #12     -> hiện câu số 12 của lời bài hát
+    #12 | chữ A, chữ B -> câu 12, tô sáng các từ khoá A và B
+    *chữ*   -> (lời chúc) chữ được nhấn mạnh, màu sáng, phát sáng
+    !       -> đầu dòng: câu lớn, kiểu điệp khúc
+    ~       -> khoảng nghỉ nhạc (hiện nốt nhạc nhấp nháy)
+    @tamthu -> màn chuyển sang tâm thư
+    @ket    -> hiện lời kết
+  Muốn khớp thời gian với giọng hát: mở trang, nhấn phím R, rồi nhấn Space đúng lúc mỗi câu bắt đầu.
+-->
+<script type="text/plain" id="lyrics">
+[00:30.1] #1 | đống đổ nát
+[00:37.0] #2
+[00:43.8] #3 | trời cao
+[00:50.7] #4 | gửi em làm quà
+[00:58.8] #5 | Cô đơn
+[01:02.2] #6
+[01:04.5] #7 | chẳng sao
+[01:08.5] #8 | khôn lớn
+[01:14.2] #9 | gặp may
+[01:17.7] #10 | Tương lai
+[01:22.0] #11 | Qua hết rồi
+[01:25.0] ~
+[01:30.9] #12 | chuyện vui
+[01:34.5] #13 | chôn vùi
+[01:39.4] #14 | yên lòng
+[01:44.4] #15 | ngủ ngon hơn
+[01:47.6] #16 | vui hơn nhiều
+[01:53.4] ! #17 | ác mộng thật đẹp
+[01:58.0] @tamthu
+[02:10.6] Những gì muốn nói, anh đã gửi em rồi
+[02:17.4] nên hôm nay không còn gì nặng lòng nữa
+[02:24.5] Anh thấy nhẹ nhõm hơn nhiều, mong em cũng vậy
+[02:31.1] #21 | tiếc nuối
+[02:38.0] Chúc em *luôn vui vẻ*
+[02:47.8] gặp thật nhiều điều tốt, và những người thương em
+[02:53.7] ! Chúc em *ăn ngon, ngủ ngon*
+[03:01.4] sáng nào thức dậy cũng thấy *nhẹ tênh*
+[03:10.3] Có mệt thì nghỉ một chút, đừng cố quá nhé
+[03:18.9] mọi thứ rồi sẽ ổn thôi
+[03:26.9] ! Mong em *luôn bình yên*
+[03:32.8] ! #17 | ác mộng thật đẹp
+[03:38.2] #35 | đẹp như cánh hoa
+[03:45.0] #36 | cả hai chúng ta
+[03:51.7] #37 | Mỉm cười
+[03:58.6] #38 | không còn thấy đau
+[04:08.3] Cảm ơn em vì *những ngày đã qua*
+[04:15.4] #44 | chuyện vui
+[04:19.1] #45 | chôn vùi
+[04:24.0] ! #46 | bảo vệ giấc mơ
+[04:31.8] ! Mọi thứ *qua rồi*, và mình đều ổn
+[04:37.0] Chúc em thật nhiều *hạnh phúc* nhé :)
+[04:43.0] @ket
+</script>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const audio = $('song');
+const linesBox = $('lines');
+const nextBox = $('next');
+const introCard = $('intro'), endCard = $('ending'), startCard = $('start');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- đọc lời ---------- */
+// lời bài hát dán vào: bỏ hợp âm [G], [Em]... và dòng trống, đánh số từ 1
+const SONG = $('song-lyrics').textContent.split('\n')
+  .map((row) => row.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim().normalize('NFC'))
+  .filter(Boolean);
+
+function parseLyrics(src) {
+  const out = [];
+  src.split('\n').forEach((row) => {
+    const m = row.trim().match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
+    if (!m) return;
+    let text = m[3].normalize('NFC');
+    const entry = { t: +m[1] * 60 + +m[2], raw: m[3], big: false, kind: 'line', song: false, text };
+    if (text.startsWith('!')) { entry.big = true; text = entry.text = text.slice(1).trim(); }
+    if (text === '~') entry.kind = 'gap';
+    else if (text === '@ket') entry.kind = 'end';
+    else if (text === '@tamthu') entry.kind = 'letter';
+    else if (/^#\d+/.test(text)) {
+      // "#17 | từ khoá, từ khoá" -> câu 17, tô sáng các từ khoá
+      const [, num, kws] = text.match(/^#(\d+)\s*(?:\|\s*(.*))?$/) || [];
+      let s = SONG[+num - 1];
+      entry.song = true;
+      // chưa dán lời bài hát thì hiện nốt nhạc thay vào
+      if (!s) { entry.kind = 'gap'; entry.text = '#' + num; }
+      else {
+        (kws || '').split(',').map((k) => k.trim()).filter(Boolean).forEach((k) => {
+          const at = s.toLowerCase().indexOf(k.toLowerCase());
+          if (at >= 0) s = s.slice(0, at) + '*' + s.slice(at, at + k.length) + '*' + s.slice(at + k.length);
+        });
+        entry.text = s;
+      }
+    }
+    out.push(entry);
+  });
+  return out.sort((a, b) => a.t - b.t);
+}
+const LINES = parseLyrics($('lyrics').textContent);
+const END_IDX = LINES.findIndex((l) => l.kind === 'end');
+const LETTER_IDX = LINES.findIndex((l) => l.kind === 'letter');
+const letterCard = $('letterCard'), modeLabel = $('mode');
+const fmt = (s) => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); };
+const fmtLrc = (s) => { const m = Math.floor(s / 60); return '[' + String(m).padStart(2, '0') + ':' + (s - m * 60).toFixed(1).padStart(4, '0') + ']'; };
+
+/* ---------- hiệu ứng chữ tụ lại như bụi ---------- */
+function hash(i, seed) { const x = Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453; return x - Math.floor(x); }
+
+function buildLine(entry, idx) {
+  const el = document.createElement('div');
+  el.className = 'line' + (entry.big ? ' big' : '') + (entry.song ? ' lyric' : '');
+  if (entry.kind === 'gap') {
+    el.classList.add('gap');
+    el.innerHTML = '<span>♪</span><span>·</span><span>♪</span>';
+    return el;
+  }
+  // tách *nhấn mạnh* thành từng đoạn → từng từ (không bị ngắt giữa từ) → từng chữ
+  const parts = entry.text.split(/(\*[^*]+\*)/).filter(Boolean)
+    .map((p) => p.startsWith('*') && p.endsWith('*') ? { s: p.slice(1, -1), em: true } : { s: p, em: false });
+  const total = entry.text.length;
+  let n = 0;
+  parts.forEach((p) => {
+    p.s.split(/( +)/).forEach((tok) => {
+      if (!tok) return;
+      if (/^ +$/.test(tok)) { el.appendChild(document.createTextNode(' ')); n++; return; }
+      const w = document.createElement('span');
+      w.className = 'w' + (p.em ? ' em' : '');
+      for (const c of tok) {
+        const s = document.createElement('span');
+        s.className = 'ch';
+        s.textContent = c;
+        const k = n + idx * 31;
+        s.style.setProperty('--dx', ((hash(k, 1) - .5) * 220).toFixed(1) + 'px');
+        s.style.setProperty('--dy', ((hash(k, 2) - .5) * 150).toFixed(1) + 'px');
+        s.style.setProperty('--rot', ((hash(k, 3) - .5) * 160).toFixed(1) + 'deg');
+        // chữ tụ lại dần từ trái sang phải, có chút ngẫu nhiên
+        const delay = (n / Math.max(total, 1)) * 0.9 + hash(k, 4) * 0.25;
+        s.style.animation = `dust-in ${(0.7 + hash(k, 5) * 0.5).toFixed(2)}s cubic-bezier(.2,.8,.2,1) ${delay.toFixed(2)}s both`;
+        w.appendChild(s);
+        n++;
+      }
+      el.appendChild(w);
+    });
+  });
+  return el;
+}
+
+function retire(el) {
+  el.classList.add('out');
+  el.querySelectorAll('.ch').forEach((s, i) => {
+    s.style.animation = `dust-out ${(0.55 + hash(i, 9) * 0.4).toFixed(2)}s ease-in ${(hash(i, 8) * 0.25).toFixed(2)}s both`;
+  });
+  if (el.classList.contains('gap')) el.style.opacity = '0';
+  setTimeout(() => el.remove(), 1300);
+}
+
+/* ---------- hiển thị theo thời gian ---------- */
+let shownIdx = -2;
+let currentEl = null;
+
+// thời gian trong lịch là lúc giọng bắt đầu hát; chữ hiện sớm một chút để kịp tụ lại
+const LEAD = 0.35;
+function indexAt(t) {
+  t += syncing ? 0 : LEAD;
+  let i = -1;
+  for (let k = 0; k < LINES.length; k++) { if (LINES[k].t <= t) i = k; else break; }
+  return i;
+}
+
+function show(idx) {
+  if (idx === shownIdx) return;
+  shownIdx = idx;
+  if (currentEl) { retire(currentEl); currentEl = null; }
+  const entry = LINES[idx];
+  const ended = !!entry && entry.kind === 'end';
+  endCard.classList.toggle('hide', !ended);
+  letterCard.classList.toggle('hide', !(entry && entry.kind === 'letter'));
+  document.body.classList.toggle('chorus', !!(entry && entry.big));
+  // nhãn nhỏ phía trên cho biết đang là lời bài hát hay tâm thư
+  const modeText = !entry || ended || entry.kind === 'letter' ? '' : entry.song || (entry.kind === 'gap' && idx < LETTER_IDX) ? '♪  Ác Mộng Đẹp' : 'lời chúc';
+  if (modeText) modeLabel.textContent = modeText;
+  modeLabel.classList.toggle('on', !!modeText);
+  if (entry && !ended && entry.kind !== 'letter') {
+    currentEl = buildLine(entry, idx);
+    const after = LINES[idx + 1];
+    if (entry.kind === 'line' && after && isFinite(after.t)) {
+      const prog = document.createElement('span');
+      prog.className = 'prog';
+      prog.innerHTML = '<i></i>';
+      prog.style.setProperty('--dur', Math.max(1, after.t - Math.max(entry.t, audio.currentTime)).toFixed(2) + 's');
+      currentEl.appendChild(prog);
+    }
+    linesBox.appendChild(currentEl);
+  }
+  // câu kế tiếp hiện mờ bên dưới
+  const nxt = LINES.slice(idx + 1).find((l) => l.kind === 'line');
+  const nextVisible = !!nxt && !!entry && entry.kind === 'line' && nxt.t - entry.t < 15;
+  nextBox.style.opacity = nextVisible ? 1 : 0;
+  if (nextVisible) nextBox.textContent = nxt.text.replace(/\*/g, '');
+}
+
+/* ---------- nhạc & nhịp nền ---------- */
+let analyser = null, freq = null, energy = 0.3;
+function setupAnalyser() {
+  // khi mở file trực tiếp (file://) trình duyệt sẽ tắt tiếng nếu phân tích âm thanh, nên chỉ bật trên web thật
+  if (analyser || !/^https?:$/.test(location.protocol)) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const srcNode = ctx.createMediaElementSource(audio);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.85;
+    srcNode.connect(analyser);
+    analyser.connect(ctx.destination);
+    freq = new Uint8Array(analyser.frequencyBinCount);
+    audio.addEventListener('play', () => ctx.resume());
+    ctx.resume();
+  } catch (e) { analyser = null; }
+}
+function readEnergy(t) {
+  let target;
+  if (analyser && !audio.paused) {
+    analyser.getByteFrequencyData(freq);
+    let sum = 0;
+    for (let i = 1; i < 24; i++) sum += freq[i];
+    target = Math.min(1, Math.max(0, (sum / 23 - 70) / 130));
+  } else {
+    target = audio.paused ? 0.15 : 0.3 + 0.12 * Math.sin(t * 2.1) + (document.body.classList.contains('chorus') ? 0.25 : 0);
+  }
+  energy += (target - energy) * 0.08;
+  document.documentElement.style.setProperty('--e', energy.toFixed(3));
+}
+
+/* ---------- bụi sáng ---------- */
+const cv = $('dust'), cx = cv.getContext('2d');
+let W = 0, H = 0, motes = [];
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const count = Math.round(Math.min(90, (W * H) / 14000));
+  motes = Array.from({ length: count }, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    r: 0.6 + Math.random() * 2.4, v: 0.08 + Math.random() * 0.35,
+    a: 0.15 + Math.random() * 0.55, ph: Math.random() * 6.28,
+    hue: Math.random() < 0.6 ? '255,214,196' : '196,180,255'
+  }));
+}
+function drawDust(t) {
+  cx.clearRect(0, 0, W, H);
+  const boost = 1 + energy * 1.6;
+  for (const m of motes) {
+    if (!reduceMotion) {
+      m.y -= m.v * boost;
+      m.x += Math.sin(t * 0.4 + m.ph) * 0.15;
+      if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+    }
+    const tw = 0.6 + 0.4 * Math.sin(t * 1.3 + m.ph);
+    const r = m.r * (1 + energy * 0.8);
+    const g = cx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 4);
+    g.addColorStop(0, `rgba(${m.hue},${(m.a * tw).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${m.hue},0)`);
+    cx.fillStyle = g;
+    cx.beginPath(); cx.arc(m.x, m.y, r * 4, 0, 6.283); cx.fill();
+  }
+  drawShootingStars(t);
+}
+
+// thỉnh thoảng một vệt sao băng lướt qua nửa trên màn hình
+let shooting = [], nextShot = 6;
+function drawShootingStars(t) {
+  if (reduceMotion) return;
+  if (t > nextShot && !audio.paused) {
+    nextShot = t + 7 + Math.random() * 9;
+    const fromLeft = Math.random() < 0.5;
+    shooting.push({ x: fromLeft ? Math.random() * W * 0.5 : W * (0.5 + Math.random() * 0.5), y: Math.random() * H * 0.35,
+      vx: (fromLeft ? 1 : -1) * (6 + Math.random() * 4), vy: 2.2 + Math.random() * 1.5, life: 0 });
+  }
+  shooting = shooting.filter((s) => s.life < 1);
+  for (const s of shooting) {
+    s.life += 0.016; s.x += s.vx; s.y += s.vy;
+    const a = Math.sin(s.life * Math.PI);
+    const tx = s.x - s.vx * 14, ty = s.y - s.vy * 14;
+    const g = cx.createLinearGradient(s.x, s.y, tx, ty);
+    g.addColorStop(0, `rgba(255,232,220,${(0.85 * a).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(255,232,220,0)');
+    cx.strokeStyle = g; cx.lineWidth = 1.4; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(s.x, s.y); cx.lineTo(tx, ty); cx.stroke();
+  }
+}
+addEventListener('resize', resize);
+resize();
+
+/* ---------- thanh điều khiển ---------- */
+const playBtn = $('playBtn'), track = $('track'), fillEl = track.querySelector('.fill'), knob = track.querySelector('.knob');
+const ICON_PLAY = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>';
+function syncPlayIcon() { playBtn.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE; }
+syncPlayIcon();
+audio.addEventListener('play', syncPlayIcon);
+audio.addEventListener('pause', syncPlayIcon);
+
+// vạch nhỏ trên thanh tua đánh dấu chỗ bắt đầu mỗi đoạn điệp khúc
+function drawTicks() {
+  track.querySelectorAll('.tick').forEach((x) => x.remove());
+  if (!audio.duration) return;
+  LINES.forEach((l, i) => {
+    if (!l.big || (LINES[i - 1] && LINES[i - 1].big) || !isFinite(l.t)) return;
+    const d = document.createElement('div');
+    d.className = 'tick';
+    d.style.left = (l.t / audio.duration * 100) + '%';
+    track.appendChild(d);
+  });
+}
+audio.addEventListener('loadedmetadata', () => { $('tDur').textContent = fmt(audio.duration); drawTicks(); });
+playBtn.addEventListener('click', () => {
+  if (!startCard.classList.contains('hide')) return begin();
+  audio.paused ? audio.play() : audio.pause();
+});
+
+function seekFromEvent(e) {
+  const r = track.getBoundingClientRect();
+  const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  if (audio.duration) audio.currentTime = p * audio.duration;
+}
+let dragging = false;
+track.addEventListener('pointerdown', (e) => { dragging = true; track.setPointerCapture(e.pointerId); seekFromEvent(e); });
+track.addEventListener('pointermove', (e) => { if (dragging) seekFromEvent(e); });
+track.addEventListener('pointerup', () => { dragging = false; });
+
+// thanh điều khiển tự ẩn khi đang nghe
+let idleTimer = null;
+function wake() {
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (!audio.paused && !syncing) document.body.classList.add('idle'); }, 2800);
+}
+['pointermove', 'pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, wake));
+audio.addEventListener('pause', wake);
+
+function begin() {
+  setupAnalyser();
+  startCard.classList.add('hide');
+  audio.play().catch(() => {});
+  wake();
+}
+$('startBtn').addEventListener('click', begin);
+$('replayBtn').addEventListener('click', () => { audio.currentTime = 0; audio.play(); });
+
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.metadata = new MediaMetadata({ title: 'Ác Mộng Đẹp', artist: 'gửi em' });
+}
+
+/* ---------- phím tắt ---------- */
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA') return;
+  if (syncing && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); stamp(); return; }
+  if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+  else if (e.code === 'ArrowRight') audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5);
+  else if (e.code === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 5);
+  else if (e.code === 'KeyT') $('clock').style.display = $('clock').style.display === 'block' ? 'none' : 'block';
+  else if (e.code === 'KeyR') toggleSync();
+});
+
+/* ---------- chế độ canh lời: nhấn Space đúng lúc từng câu bắt đầu ---------- */
+let syncing = false, stampAt = 0;
+const original = LINES.map((l) => l.t);
+function syncLabel() {
+  const l = LINES[stampAt];
+  $('syncNext').textContent = !l ? '— đã xong —'
+    : l.kind === 'gap' ? (l.song ? '(lời bài hát ' + l.text + ')' : '(khoảng nghỉ ~)')
+    : l.kind === 'end' ? '(lời kết)'
+    : l.kind === 'letter' ? '(màn chuyển sang tâm thư)'
+    : l.text.replace(/\*/g, '');
+}
+function toggleSync() {
+  if (syncing) return finishSync();
+  syncing = true; stampAt = 0;
+  LINES.forEach((l) => { l.t = Infinity; });
+  $('syncOut').value = '';
+  $('sync').classList.add('show');
+  startCard.classList.add('hide');
+  setupAnalyser();
+  audio.currentTime = 0;
+  audio.play();
+  syncLabel();
+}
+function stamp() {
+  if (stampAt >= LINES.length) return;
+  LINES[stampAt].t = audio.currentTime;
+  stampAt++;
+  syncLabel();
+  if (stampAt >= LINES.length) finishSync();
+}
+function finishSync() {
+  syncing = false;
+  // câu chưa kịp đánh dấu thì giữ thời gian cũ
+  LINES.forEach((l, i) => { if (l.t === Infinity) l.t = original[i]; });
+  $('syncOut').value = LINES.map((l) => fmtLrc(l.t) + ' ' + l.raw).join('\n');
+  $('syncOut').focus(); $('syncOut').select();
+  drawTicks();
+}
+$('syncCopy').addEventListener('click', () => { $('syncOut').select(); navigator.clipboard && navigator.clipboard.writeText($('syncOut').value); });
+$('syncClose').addEventListener('click', () => { if (syncing) finishSync(); $('sync').classList.remove('show'); });
+addEventListener('pointerdown', (e) => { if (syncing && !e.target.closest('#sync, #bar')) stamp(); });
+
+/* ---------- vòng lặp chính ---------- */
+function frame(ms) {
+  const t = ms / 1000;
+  const ct = audio.currentTime;
+  readEnergy(t);
+  drawDust(t);
+  if (startCard.classList.contains('hide')) {
+    const idx = audio.ended ? END_IDX : indexAt(ct);
+    show(idx);
+    // tựa bài hiện trong đoạn dạo nhạc, trước câu đầu tiên
+    introCard.classList.toggle('hide', !(idx === -1 && !syncing && ct > 1.5 && ct < LINES[0].t - 2));
+  }
+  if (audio.duration) {
+    const p = (ct / audio.duration * 100) + '%';
+    fillEl.style.width = p; knob.style.left = p;
+  }
+  $('tCur').textContent = fmt(ct);
+  $('clock').textContent = fmtLrc(ct);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
